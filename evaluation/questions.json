@@ -1,51 +1,143 @@
 [
   {
     "question": "What are the key components of a neural network?",
-    "expected": "answerable"
+    "expected": "answerable",
+    "category": "answerable_direct",
+    "expected_sources": [
+      "Machine-Learning/Neural-Networks.md"
+    ]
   },
   {
-    "question": "What are stages of ML life cycle and why it important to ML Models?",
-    "expected": "answerable"
+    "question": "What are the stages of the ML lifecycle and why do they matter?",
+    "expected": "answerable",
+    "category": "answerable_direct",
+    "expected_sources": [
+      "Machine-Learning/ML Lifecycle.md"
+    ]
   },
   {
     "question": "What is Retrieval-Augmented Generation?",
-    "expected": "answerable"
+    "expected": "answerable",
+    "category": "answerable_direct",
+    "expected_sources": [
+      "AI/RAG.md"
+    ]
   },
   {
     "question": "How does a neural network process information?",
-    "expected": "answerable"
+    "expected": "answerable",
+    "category": "answerable_direct",
+    "expected_sources": [
+      "Machine-Learning/Neural-Networks.md"
+    ]
   },
   {
     "question": "Why is model monitoring important?",
-    "expected": "answerable"
+    "expected": "answerable",
+    "category": "answerable_direct",
+    "expected_sources": [
+      "Machine-Learning/ML Lifecycle.md"
+    ]
   },
   {
     "question": "How is a neural network structured?",
-    "expected": "answerable"
+    "expected": "answerable",
+    "category": "answerable_direct",
+    "expected_sources": [
+      "Machine-Learning/Neural-Networks.md"
+    ]
   },
   {
     "question": "Why is retrieval useful in RAG?",
-    "expected": "answerable"
+    "expected": "answerable",
+    "category": "answerable_direct",
+    "expected_sources": [
+      "AI/RAG.md"
+    ]
   },
   {
-    "question": "Why were transformers created and why are they useful for building GPT?",
-    "expected": "unanswerable"
+    "question": "Can you walk me through what makes up a neural network?",
+    "expected": "answerable",
+    "category": "answerable_paraphrase",
+    "expected_sources": [
+      "Machine-Learning/Neural-Networks.md"
+    ],
+    "note": "Paraphrase of the 'components' question. Tests OVER-refusal: the system should still answer even though the wording no longer matches the note."
   },
   {
-    "question": "Who invented neural networks and when?",
-    "expected": "unanswerable"
+    "question": "How does evaluation fit into the machine learning lifecycle?",
+    "expected": "answerable",
+    "category": "answerable_multi_source",
+    "expected_sources": [
+      "Machine-Learning/Evaluation.md",
+      "Machine-Learning/ML Lifecycle.md"
+    ],
+    "note": "VERIFY both notes touch this. Only a true multi-source case if the answer needs both. If only one covers it, drop the other from expected_sources (or relabel)."
   },
   {
     "question": "What is the capital of Japan?",
-    "expected": "unanswerable"
-  },
-  {
-    "question": "How does quantum entanglement work?",
-    "expected": "unanswerable"
+    "expected": "unanswerable",
+    "category": "easy_negative",
+    "note": "Control. Obviously off-domain. Should be refused trivially."
   },
   {
     "question": "What is the current stock price of NVIDIA?",
-    "expected": "unanswerable"
+    "expected": "unanswerable",
+    "category": "easy_negative",
+    "note": "Control. Real-time fact, never in a static notes vault."
+  },
+  {
+    "question": "How does quantum entanglement work?",
+    "expected": "unanswerable",
+    "category": "easy_negative",
+    "note": "Control. Off-domain."
+  },
+  {
+    "question": "What is the difference between RAG and fine-tuning?",
+    "expected": "unanswerable",
+    "category": "hard_negative",
+    "note": "TRAP: 'RAG' retrieves the RAG note strongly, but the note explains RAG alone — not a comparison to fine-tuning, which likely isn't in the vault at all. Tests whether the evaluator refuses a comparison it can't support. VERIFY fine-tuning isn't covered."
+  },
+  {
+    "question": "What are the different types of RAG architectures?",
+    "expected": "unanswerable",
+    "category": "hard_negative",
+    "note": "TRAP: high similarity on 'RAG', but an intro note almost certainly doesn't enumerate naive/advanced/modular variants. VERIFY."
+  },
+  {
+    "question": "How do you measure retrieval precision and recall in a RAG system?",
+    "expected": "unanswerable",
+    "category": "hard_negative",
+    "note": "TRAP: fires on BOTH the RAG note and the Evaluation note, but Evaluation.md is about ML model evaluation, not retrieval metrics. Two related-but-distinct topics colliding is exactly what fools naive semantic RAG. VERIFY."
+  },
+  {
+    "question": "What tools are used to monitor models in production?",
+    "expected": "unanswerable",
+    "category": "hard_negative",
+    "note": "Specificity trap, deliberately paired with the answerable 'Why is model monitoring important?'. Vault covers WHY monitoring matters, almost certainly not WHICH tools. Same topic, different granularity. VERIFY no tools are named."
+  },
+  {
+    "question": "What learning rate should I use to train a neural network?",
+    "expected": "unanswerable",
+    "category": "hard_negative",
+    "note": "Specificity trap. NN note fires, but a components/structure note won't give hyperparameter values. VERIFY."
+  },
+  {
+    "question": "What is the vanishing gradient problem?",
+    "expected": "unanswerable",
+    "category": "hard_negative",
+    "note": "Depth trap. Adjacent to neural networks but a level deeper than an intro note likely goes. VERIFY — if your NN note covers training/gradients, relabel to answerable."
+  },
+  {
+    "question": "How does chunk size affect retrieval quality in RAG?",
+    "expected": "unanswerable",
+    "category": "hard_negative",
+    "note": "Tradeoff trap. The chunk-size vs quality discussion is in YOUR README, not necessarily the vault note. VERIFY the vault note, not the README."
+  },
+  {
+    "question": "How does the ML lifecycle apply to large language models?",
+    "expected": "unanswerable",
+    "category": "hard_negative",
+    "note": "False-bridge trap. 'ML lifecycle' retrieves strongly; 'large language models' is out of scope. Tests whether the evaluator answers the lifecycle half and hallucinates the LLM half. VERIFY LLMs aren't covered."
   }
 ]
-

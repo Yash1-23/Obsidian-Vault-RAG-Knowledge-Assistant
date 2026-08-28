@@ -67,7 +67,7 @@ if ask_button:
             "🔎 Searching your Obsidian knowledge base..."
         ):
 
-            answer, metadatas, documents, distances = agent_answer(
+            answer, metadatas, documents, distances , agent_steps= agent_answer(
                 question
             )
 

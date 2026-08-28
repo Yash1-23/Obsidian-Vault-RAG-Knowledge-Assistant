@@ -1,4 +1,6 @@
+
 import os
+from typing import Callable,Optional
 
 import chromadb
 from sentence_transformers import SentenceTransformer
@@ -18,9 +20,20 @@ groq_client = Groq(
 )
 
 
-def retrieve_documents(query, top_k=3):
+# --------------------------------------------------
+# Load embedding model once
+# --------------------------------------------------
 
-    model = SentenceTransformer(EMBEDDING_MODEL)
+embedding_model = SentenceTransformer(
+    EMBEDDING_MODEL
+)
+
+
+# --------------------------------------------------
+# Retrieve documents
+# --------------------------------------------------
+
+def retrieve_documents(query, top_k=3):
 
     chroma_client = chromadb.PersistentClient(
         path=CHROMA_PATH
@@ -30,7 +43,7 @@ def retrieve_documents(query, top_k=3):
         name=COLLECTION_NAME
     )
 
-    query_embedding = model.encode(
+    query_embedding = embedding_model.encode(
         query,
         convert_to_numpy=True
     ).tolist()
@@ -47,22 +60,40 @@ def retrieve_documents(query, top_k=3):
     return documents, metadatas, distances
 
 
-def evaluate_context(question, documents):
+# --------------------------------------------------
+# Evaluate retrieved context
+# --------------------------------------------------
+
+def evaluate_context(question, documents,distances):
 
     context = "\n\n---\n\n".join(documents)
 
     evaluation_prompt = f"""
-You are evaluating whether a knowledge base contains
-enough information to answer a user's question.
+You are a strict knowledge-base evidence evaluator.
+
+Your job is to determine whether the retrieved documents
+contain enough explicit information to answer the user's
+question.
+
+IMPORTANT RULES:
+
+1. The answer must be supported directly by the retrieved
+   knowledge.
+2. Information that is merely related to the question is
+   NOT sufficient.
+3. Do NOT use your general knowledge.
+4. Do NOT assume missing facts.
+5. If the retrieved documents only mention a related topic
+   but do not provide enough information to answer the
+   actual question, return INSUFFICIENT.
+6. Only return SUFFICIENT when the retrieved knowledge
+   contains enough evidence to construct a factual answer.
 
 User question:
 {question}
 
 Retrieved knowledge:
 {context}
-
-Determine whether the retrieved knowledge contains
-enough information to answer the question.
 
 Return ONLY one word:
 
@@ -77,6 +108,13 @@ INSUFFICIENT
         model="openai/gpt-oss-120b",
         messages=[
             {
+                "role": "system",
+                "content": (
+                    "You are a strict evidence evaluator. "
+                    "Never treat related information as sufficient."
+                )
+            },
+            {
                 "role": "user",
                 "content": evaluation_prompt
             }
@@ -84,8 +122,64 @@ INSUFFICIENT
         temperature=0
     )
 
-    return response.choices[0].message.content.strip().upper()
+    decision = (
+        response.choices[0]
+        .message.content
+        .strip()
+        .upper()
+    )
 
+    if decision == "SUFFICIENT":
+        return "SUFFICIENT"
+
+    return "INSUFFICIENT"
+
+
+
+
+
+# --------------------------------------------------
+# Refine search query
+# --------------------------------------------------
+
+def refine_query(question):
+
+    prompt = f"""
+You are a search query optimization agent.
+
+Rewrite the user's question into a concise search
+query that will improve retrieval from a technical
+knowledge base.
+
+Preserve the original meaning.
+
+Return ONLY the rewritten search query.
+
+Original question:
+{question}
+"""
+
+    response = groq_client.chat.completions.create(
+        model="openai/gpt-oss-120b",
+        messages=[
+            {
+                "role": "user",
+                "content": prompt
+            }
+        ],
+        temperature=0
+    )
+
+    return (
+        response.choices[0]
+        .message.content
+        .strip()
+    )
+
+
+# --------------------------------------------------
+# Generate grounded answer
+# --------------------------------------------------
 
 def generate_answer(question, documents, metadatas):
 
@@ -144,28 +238,134 @@ Provide a concise and accurate answer.
     return response.choices[0].message.content
 
 
-def agent_answer(question):
+# --------------------------------------------------
+# Agent
+# --------------------------------------------------
+# --------------------------------------------------
+# Agent
+# --------------------------------------------------
+
+def agent_answer(
+    question,
+    status_callback: Optional[Callable[[str], None]] = None
+):
+
+    agent_steps = []
+
+    def update_status(message):
+
+        print(message)
+        agent_steps.append(message)
+
+        if status_callback:
+            status_callback(message)
+
+    update_status("\nAgent started")
+    update_status(
+        f"Original question: {question}"
+    )
+
+    # ----------------------------------------------
+    # Step 1: Initial retrieval
+    # ----------------------------------------------
 
     documents, metadatas, distances = retrieve_documents(
-        question
+        question,
+        top_k=3
     )
+
+    update_status(
+        "Initial retrieval completed"
+    )
+
+    print("\nRetrieved sources:")
+
+    for metadata, distance in zip(
+        metadatas,
+        distances
+    ):
+
+        print(
+            f"- {metadata['source']} "
+            f"(chunk {metadata['chunk_id']}, "
+            f"distance={distance:.4f})"
+        )
 
     decision = evaluate_context(
         question,
-        documents
+        documents,
+        distances
     )
 
-    print(f"\nAgent decision: {decision}")
+    update_status(
+        f"Initial evidence evaluation: {decision}"
+    )
+
+    # ----------------------------------------------
+    # Step 2: Adaptive retrieval
+    # ----------------------------------------------
 
     if decision == "INSUFFICIENT":
+
+        update_status(
+            "Evidence insufficient — refining search query..."
+        )
+
+        refined_query = refine_query(
+            question
+        )
+
+        update_status(
+            f"Refined query: {refined_query}"
+        )
+
+        documents, metadatas, distances = retrieve_documents(
+            refined_query,
+            top_k=5
+        )
+
+        update_status(
+            "Second retrieval completed"
+        )
+
+        decision = evaluate_context(
+            question,
+            documents,
+            distances
+        )
+
+        update_status(
+            f"Second evidence evaluation: {decision}"
+        )
+
+    # ----------------------------------------------
+    # Step 3: Reject unsupported question
+    # ----------------------------------------------
+
+    if decision == "INSUFFICIENT":
+
+        update_status(
+            "Knowledge base does not contain "
+            "sufficient evidence."
+        )
 
         return (
             "I couldn't find enough information "
             "in the knowledge base.",
             metadatas,
             documents,
-            distances
+            distances,
+            agent_steps
         )
+
+    # ----------------------------------------------
+    # Step 4: Generate grounded answer
+    # ----------------------------------------------
+
+    update_status(
+        "Evidence sufficient — generating "
+        "grounded answer..."
+    )
 
     answer = generate_answer(
         question,
@@ -173,19 +373,31 @@ def agent_answer(question):
         metadatas
     )
 
+    update_status(
+        "Grounded answer generated successfully"
+    )
+
     return (
         answer,
         metadatas,
         documents,
-        distances
+        distances,
+        agent_steps
     )
 
 
+
+# --------------------------------------------------
+# CLI testing
+# --------------------------------------------------
+
 if __name__ == "__main__":
 
-    question = input("\nAsk a question: ")
+    question = input(
+        "\nAsk a question: "
+    )
 
-    answer, metadatas, documents, distances = agent_answer(
+    answer, metadatas, documents, distances,agent_steps = agent_answer(
         question
     )
 
@@ -199,8 +411,18 @@ if __name__ == "__main__":
     print("SOURCES")
     print("=" * 60)
 
+    shown_sources = set()
+
     for metadata in metadatas:
-        print(
-            f"- {metadata['source']} "
-            f"(chunk {metadata['chunk_id']})"
-        )
+
+        source = metadata["source"]
+
+        if source not in shown_sources:
+
+            print(
+                f"- {source} "
+                f"(chunk {metadata['chunk_id']})"
+            )
+
+            shown_sources.add(source)
+

@@ -7,3 +7,4 @@ streamlit
 langchain-text-splitters
 sentence-transformers
 groq
+

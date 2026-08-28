@@ -1,0 +1,51 @@
+[
+  {
+    "question": "What are the key components of a neural network?",
+    "expected": "answerable"
+  },
+  {
+    "question": "What are stages of ML life cycle and why it important to ML Models?",
+    "expected": "answerable"
+  },
+  {
+    "question": "What is Retrieval-Augmented Generation?",
+    "expected": "answerable"
+  },
+  {
+    "question": "How does a neural network process information?",
+    "expected": "answerable"
+  },
+  {
+    "question": "Why is model monitoring important?",
+    "expected": "answerable"
+  },
+  {
+    "question": "How is a neural network structured?",
+    "expected": "answerable"
+  },
+  {
+    "question": "Why is retrieval useful in RAG?",
+    "expected": "answerable"
+  },
+  {
+    "question": "Why were transformers created and why are they useful for building GPT?",
+    "expected": "unanswerable"
+  },
+  {
+    "question": "Who invented neural networks and when?",
+    "expected": "unanswerable"
+  },
+  {
+    "question": "What is the capital of Japan?",
+    "expected": "unanswerable"
+  },
+  {
+    "question": "How does quantum entanglement work?",
+    "expected": "unanswerable"
+  },
+  {
+    "question": "What is the current stock price of NVIDIA?",
+    "expected": "unanswerable"
+  }
+]
+

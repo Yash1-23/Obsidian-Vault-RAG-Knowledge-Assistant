@@ -1,7 +1,7 @@
 
 import streamlit as st
 
-from rag import agent_answer
+from src.rag import agent_answer
 
 
 # --------------------------------------------------
